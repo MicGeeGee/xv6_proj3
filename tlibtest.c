@@ -29,7 +29,10 @@ void * tc1_func(void * arg)
 {
     count++;
     printf(1, "Printing in %s thread: completed!\n", (char *)arg);
+	
+	//exit();
     return (void *)0;
+
 }
 
 void tc1(void)

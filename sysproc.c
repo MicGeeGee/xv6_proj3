@@ -91,3 +91,33 @@ sys_uptime(void)
 }
 
 
+int sys_clone(void)
+{
+	void* (*fn)(void *)=0;
+	void* stack=0;
+	void* arg=0;
+	
+	int n1;
+	int n2;
+	int n3;
+	
+	argint(0,&n1);
+	argint(1,&n2);
+	argint(2,&n3);
+
+	
+	
+	fn=(void* (*)(void *))n1;
+	stack=(void* )n2;
+	arg=(void* )n3;
+	
+	return clone(fn,stack,arg);
+}
+int sys_join(void)
+{
+	return 0;
+}
+int sys_thread_exit(void)
+{
+	return 0;
+}

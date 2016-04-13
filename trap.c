@@ -86,11 +86,19 @@ trap(struct trapframe *tf)
               tf->trapno, cpu->id, tf->eip, rcr2());
       panic("trap");
     }
+
     // In user space, assume process misbehaved.
-    cprintf("pid %d %s: trap %d err %d on cpu %d "
-            "eip 0x%x addr 0x%x--kill proc\n",
-            proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
-            rcr2());
+
+	//if((tf->eip+1)!=0 || (*(int *)(tf->esp-4)+1)!=0)
+		cprintf("pid %d %s: trap %d err %d on cpu %d "
+				"eip 0x%x addr 0x%x--kill proc\n",
+				proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+				rcr2());
+	//else
+	//{
+		// Catch the exception and get the return value.
+		//asm volatile("\t movl %%eax,%0" : "=r"(tf->eax));
+	//}
     proc->killed = 1;
   }
 

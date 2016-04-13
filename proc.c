@@ -465,3 +465,76 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+
+int 
+clone(void* (*fn)(void *),void* stack, void* arg)
+{
+	int i;
+	uint sp;
+	struct proc *np;
+	uint ustack[2];
+
+	// Allocate process.
+	if((np = allocproc()) == 0)
+		return -1;
+	
+
+	// Share process state from p.
+	np->pgdir=proc->pgdir;
+
+	np->sz = proc->sz;
+	np->parent = proc;
+	*np->tf = *proc->tf;
+	
+	// Set start function.
+	np->tf->eip=(uint)fn;
+
+	
+	// Implement caller's responsibilities.
+	sp=(uint)stack;
+	
+
+	//sp=sp-4;
+	//if(copyout(np->pgdir,sp,&arg,sizeof(char*))<0)
+		//return -2;
+	//sp=sp-4;
+	//ret_addr=0xffffffff;
+	//if(copyout(np->pgdir, sp, &ret_addr, sizeof(uint)) < 0)
+		//return -3;
+	
+	ustack[0]=0xffffffff;
+	ustack[1]=(uint)arg;
+	
+	sp-=2*4;
+	if(copyout(np->pgdir, sp, ustack, 2*4) < 0)
+		return -2;
+
+	np->tf->esp=sp;
+	
+	
+	for(i = 0; i < NOFILE; i++)
+		if(proc->ofile[i])
+			np->ofile[i] = filedup(proc->ofile[i]);
+	np->cwd = idup(proc->cwd);
+
+	safestrcpy(np->name, proc->name, sizeof(proc->name));
+	
+	// lock to force the compiler to emit the np->state write last.
+	acquire(&ptable.lock);
+	np->state = RUNNABLE;
+	release(&ptable.lock);
+  
+	return np->pid;
+
+//bad:
+	//return -2;
+	
+}
+void join(int tid,void** ret_p,void** stack)
+{
+}
+void thread_exit(void* ret)
+{
+
+}

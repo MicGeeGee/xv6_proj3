@@ -5,8 +5,13 @@
 
 void xthread_create(int * tid, void * (* start_routine)(void *), void * arg)
 {
-    // add your implementation here ...
-    
+	
+    int id=10;
+	char* p_stack=(char* )malloc(4096);
+	p_stack+=4096;
+	id=clone(start_routine,p_stack,arg);
+	*tid=id;
+	printf(1,"%tid=%d\n",id);
 }
 
 

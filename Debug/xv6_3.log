@@ -1,4 +1,4 @@
-﻿生成启动时间为 2016/4/12 星期二 15:26:04。
+﻿生成启动时间为 2016/4/12 星期二 21:25:24。
      1>项目“Z:\3\xv6_3\xv6_3\xv6_3.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
          G:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TC /analyze- /errorReport:prompt bio.c bootmain.c cat.c console.c echo.c exec.c file.c fs.c grep.c ide.c init.c ioapic.c kalloc.c kbd.c kill.c lapic.c ln.c log.c ls.c main.c memide.c mkdir.c mkfs.c mp.c picirq.c pipe.c printf.c proc.c rm.c sh.c spinlock.c stressfs.c string.c syscall.c sysfile.c sysproc.c timer.c tlibtest.c trap.c uart.c ulib.c umalloc.c usertests.c vm.c wc.c xthread.c zombie.c
@@ -631,17 +631,17 @@
      1>z:\3\xv6_3\xv6_3\syscall.c(48): error C2198: “fetchint”: 用于调用的参数太少
      1>z:\3\xv6_3\xv6_3\syscall.c(61): error C2065: “proc”: 未声明的标识符
      1>z:\3\xv6_3\xv6_3\syscall.c(61): error C2223: “->sz”的左侧必须指向结构/联合
-     1>z:\3\xv6_3\xv6_3\syscall.c(104): error C2059: 语法错误:“[”
-     1>z:\3\xv6_3\xv6_3\syscall.c(132): error C2065: “proc”: 未声明的标识符
-     1>z:\3\xv6_3\xv6_3\syscall.c(132): error C2223: “->tf”的左侧必须指向结构/联合
-     1>z:\3\xv6_3\xv6_3\syscall.c(133): warning C4034: sizeof 返回 0
-     1>z:\3\xv6_3\xv6_3\syscall.c(134): error C2065: “proc”: 未声明的标识符
-     1>z:\3\xv6_3\xv6_3\syscall.c(134): error C2223: “->tf”的左侧必须指向结构/联合
-     1>z:\3\xv6_3\xv6_3\syscall.c(137): error C2065: “proc”: 未声明的标识符
-     1>z:\3\xv6_3\xv6_3\syscall.c(137): error C2223: “->pid”的左侧必须指向结构/联合
-     1>z:\3\xv6_3\xv6_3\syscall.c(137): error C2223: “->name”的左侧必须指向结构/联合
+     1>z:\3\xv6_3\xv6_3\syscall.c(107): error C2059: 语法错误:“[”
      1>z:\3\xv6_3\xv6_3\syscall.c(138): error C2065: “proc”: 未声明的标识符
      1>z:\3\xv6_3\xv6_3\syscall.c(138): error C2223: “->tf”的左侧必须指向结构/联合
+     1>z:\3\xv6_3\xv6_3\syscall.c(139): warning C4034: sizeof 返回 0
+     1>z:\3\xv6_3\xv6_3\syscall.c(140): error C2065: “proc”: 未声明的标识符
+     1>z:\3\xv6_3\xv6_3\syscall.c(140): error C2223: “->tf”的左侧必须指向结构/联合
+     1>z:\3\xv6_3\xv6_3\syscall.c(143): error C2065: “proc”: 未声明的标识符
+     1>z:\3\xv6_3\xv6_3\syscall.c(143): error C2223: “->pid”的左侧必须指向结构/联合
+     1>z:\3\xv6_3\xv6_3\syscall.c(143): error C2223: “->name”的左侧必须指向结构/联合
+     1>z:\3\xv6_3\xv6_3\syscall.c(144): error C2065: “proc”: 未声明的标识符
+     1>z:\3\xv6_3\xv6_3\syscall.c(144): error C2223: “->tf”的左侧必须指向结构/联合
          string.c
      1>z:\3\xv6_3\xv6_3\x86.h(4): error C2054: 在“inline”之后应输入“(”
      1>z:\3\xv6_3\xv6_3\x86.h(5): error C2085: “inb”: 不在形参表中
@@ -1773,4 +1773,4 @@
 
 生成失败。
 
-已用时间 00:00:08.71
+已用时间 00:00:06.92
