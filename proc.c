@@ -175,70 +175,92 @@ exit(void)
 {
   struct proc *p;
   int fd;
+  int is_thread_running;
 
   if(proc == initproc)
     panic("init exiting");
 
-  // Close all open files.
-  for(fd = 0; fd < NOFILE; fd++){
-    if(proc->ofile[fd]){
-      fileclose(proc->ofile[fd]);
-      proc->ofile[fd] = 0;
-    }
-  }
-
-  begin_op();
-  iput(proc->cwd);
-  end_op();
-  proc->cwd = 0;
-
-  acquire(&ptable.lock);
-
-  // Parent might be sleeping in wait().
-  wakeup1(proc->parent);
-
-  // If this is not a thread.
+  is_thread_running=0;
   if(!proc->xstack)
   {
-	  // Pass abandoned children to init.
-	  // This code is for proc's children.
-	  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-		if(p->parent == proc && !p->xstack){
-		  p->parent = initproc;
-		  if(p->state == ZOMBIE)
-			wakeup1(initproc);
-		}
-		if(p->parent == proc && p->xstack){
-		  // Clean the threads created in the process.
-		  thread_clear(p);
+	  // proc is not a thread but a process.
+	  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+	  {
+		if(p == proc)
+			continue;
+		if(p->parent == proc && p->xstack)
+		{
+			// Get a child thread.
+			if(p->state != ZOMBIE)
+			{
+				is_thread_running=1;
+				break;
+			}
 		}
 	  }
   }
   else
   {
-	  // Do the 'exit' job for its parent.
-	  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-		if(p==proc)
+	  // proc is a thread.
+	  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+	  {
+		if(p == proc)
 			continue;
-		if(p->parent == proc->parent && !p->xstack){
-		  p->parent = initproc;
-		  if(p->state == ZOMBIE)
-			wakeup1(initproc);
-		}
-		if(p->parent == proc->parent && p->xstack){
-		  // Clean the threads created in the process.
-		  thread_clear(p);
+		if(p->parent == proc->parent && p->xstack)
+		{
+			// Get a brother thread.
+			if(p->state != ZOMBIE)
+			{
+				is_thread_running=1;
+				break;
+			}
 		}
 	  }
 
-	  wakeup1(proc->parent->parent);
-	  proc->parent->state = ZOMBIE;
+	  if(proc->parent->state != ZOMBIE)
+	    is_thread_running=1;
   }
 
+  if(!is_thread_running)
+  {
+	  // If there is no child thread running,
+	  // release the resources.
+	  // Close all open files.
+	  for(fd = 0; fd < NOFILE; fd++)
+	  {
+		if(proc->ofile[fd])
+		{
+		  fileclose(proc->ofile[fd]);
+		  proc->ofile[fd] = 0;
+		}
+	  }
 
-
+	  begin_op();
+	  iput(proc->cwd);
+	  end_op();
+	  proc->cwd = 0;
   
+	  acquire(&ptable.lock);
 
+	  // Parent might be sleeping in wait().
+	  // If the the wakeup1 is not been invoked,
+	  // the zombie will not be put away.
+	  wakeup1(proc->parent);
+  }
+  else
+	  acquire(&ptable.lock);
+   
+  // Pass abandoned children to init.
+  // This code is for proc's children.
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+	  if(p->parent == proc && !p->xstack)
+	  {
+		p->parent = initproc;
+		if(p->state == ZOMBIE)
+		wakeup1(initproc);
+	  }
+  }
 
 
   // Jump into the scheduler, never to return.
@@ -322,7 +344,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-	  cprintf("pid=%d, name=%s\n",p->pid,p->name);
+	  
 
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
@@ -632,12 +654,57 @@ void join(int tid,void** ret_p,void** stack)
 	}
 
 }
+
 void thread_exit(void* ret)
 {
 	uint sp;
+	int is_last;
+	int fd;
+	struct proc* p;
 
 	if(proc == initproc)
 		panic("init exiting");
+
+	// Find out whether this thread is the last one.
+	is_last=1;
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+		if(p == proc)
+			continue;
+		if(p->parent == proc->parent && p->xstack){
+			// Get a brother thread.
+			if(p->state != ZOMBIE)
+			{
+				is_last=0;
+				break;
+			}
+		}
+	}
+	if(proc->parent->state != ZOMBIE)
+		is_last=0;
+
+	if(is_last)
+	{
+		// If there is no child thread running,
+		// release the resources.
+		// Close all open files.
+		for(fd = 0; fd < NOFILE; fd++){
+			if(proc->parent->ofile[fd]){
+				fileclose(proc->parent->ofile[fd]);
+				proc->parent->ofile[fd] = 0;
+				}
+		}
+
+		begin_op();
+		iput(proc->parent->cwd);
+		end_op();
+		proc->parent->cwd = 0;
+  
+		// Parent might be sleeping in wait().
+		// If the the wakeup1 is not been invoked,
+		// the zombie will not be put away.
+		wakeup1(proc->parent->parent);
+	}
+
 
 	acquire(&ptable.lock);
 
@@ -652,9 +719,11 @@ void thread_exit(void* ret)
 	// There might be joined thread sleeping in join().
 	wakeup1(&proc->pid);
 
+	
+
+	
 	// Jump into the scheduler, never to return.
 	proc->state = ZOMBIE;
-	
 	// Take care of the code here,
 	// proc->tf will not be popped.
 	sched();
@@ -662,15 +731,3 @@ void thread_exit(void* ret)
 }
 
 
-//Clean the resources of the thread.
-void thread_clear(struct proc* p)
-{
-	kfree(p->kstack);
-	p->kstack = 0;
-	p->state = UNUSED;
-	p->pid = 0;
-	p->parent = 0;
-	p->name[0] = 0;
-	p->killed = 0;
-	p->xstack= 0;
-}

@@ -89,16 +89,19 @@ trap(struct trapframe *tf)
 
     // In user space, assume process misbehaved.
 
-	//if((tf->eip+1)!=0 || (*(int *)(tf->esp-4)+1)!=0)
+	if((tf->eip+1)!=0 || (*(int *)(tf->esp-4)+1)!=0 || proc->xstack==0)
+	{
 		cprintf("pid %d %s: trap %d err %d on cpu %d "
 				"eip 0x%x addr 0x%x--kill proc\n",
 				proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
 				rcr2());
-	//else
-	//{
+	}
+	else
+	{
 		// Catch the exception and get the return value.
-		//asm volatile("\t movl %%eax,%0" : "=r"(tf->eax));
-	//}
+		asm volatile("\t movl %%eax,%0" : "=r"(tf->eax));
+		thread_exit((void*)tf->eax);
+	}
     proc->killed = 1;
   }
 
