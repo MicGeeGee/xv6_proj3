@@ -197,16 +197,53 @@ exit(void)
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
 
-  // Pass abandoned children to init.
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == proc){
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
-    }
+  // If this is not a thread.
+  if(!proc->xstack)
+  {
+	  // Pass abandoned children to init.
+	  // This code is for proc's children.
+	  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+		if(p->parent == proc && !p->xstack){
+		  p->parent = initproc;
+		  if(p->state == ZOMBIE)
+			wakeup1(initproc);
+		}
+		if(p->parent == proc && p->xstack){
+		  // Clean the threads created in the process.
+		  thread_clear(p);
+		}
+	  }
+  }
+  else
+  {
+	  // Do the 'exit' job for its parent.
+	  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+		if(p==proc)
+			continue;
+		if(p->parent == proc->parent && !p->xstack){
+		  p->parent = initproc;
+		  if(p->state == ZOMBIE)
+			wakeup1(initproc);
+		}
+		if(p->parent == proc->parent && p->xstack){
+		  // Clean the threads created in the process.
+		  thread_clear(p);
+		}
+	  }
+
+	  wakeup1(proc->parent->parent);
+	  proc->parent->state = ZOMBIE;
   }
 
+
+
+  
+
+
+
   // Jump into the scheduler, never to return.
+  // This code is for proc's parent, 
+  // in other words, to let its parent put away the zombie.
   proc->state = ZOMBIE;
   sched();
   panic("zombie exit");
@@ -284,6 +321,9 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+
+	  cprintf("pid=%d, name=%s\n",p->pid,p->name);
+
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
 
@@ -312,6 +352,7 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = cpu->intena;
+
   swtch(&proc->context, cpu->scheduler);
   cpu->intena = intena;
 }
@@ -491,6 +532,7 @@ clone(void* (*fn)(void *),void* stack, void* arg)
 	np->tf->eip=(uint)fn;
 
 	
+	np->xstack=(char* )stack;
 	// Implement caller's responsibilities.
 	sp=(uint)stack;
 	
@@ -531,10 +573,104 @@ clone(void* (*fn)(void *),void* stack, void* arg)
 	//return -2;
 	
 }
+
 void join(int tid,void** ret_p,void** stack)
 {
+	struct proc *p;
+	int is_existed;
+
+	acquire(&ptable.lock);
+
+	for(;;)
+	{
+		// Scan through table looking for zombie thread whose pid is equal to tid.
+		is_existed = 0;
+		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+		{
+			if(p->pid != tid)
+				continue;
+			is_existed = 1;
+			if(p->state == ZOMBIE)
+			{
+				// Found one.
+				kfree(p->kstack);
+				p->kstack = 0;
+
+				// Pass the bottom address to stack.
+				*stack=p->xstack-4096;
+
+				// Pass the return value to ret_p.
+				*ret_p=(void* )(*((uint*)(p->tf->esp)));
+
+				p->state = UNUSED;
+				p->pid = 0;
+				p->parent = 0;
+				p->name[0] = 0;
+				p->killed = 0;
+				p->xstack = 0;
+				release(&ptable.lock);
+
+				// We could only wait for one thread.
+				return;
+			}
+			else
+			{
+				// We could only wait for one thread.
+				break;
+			}
+		}
+
+		// No point waiting if we don't have the correspond thread.
+		if(!is_existed || proc->killed)
+		{
+			release(&ptable.lock);
+			return;
+		}
+
+		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
+		sleep(&p->pid, &ptable.lock);  //DOC: wait-sleep
+	}
+
 }
 void thread_exit(void* ret)
 {
+	uint sp;
 
+	if(proc == initproc)
+		panic("init exiting");
+
+	acquire(&ptable.lock);
+
+	// Store the return value on the user stack.
+	// We only need the address here to get access to the correspond place in pgdir.
+	sp=proc->tf->esp;
+	sp-=4;
+	if(copyout(proc->pgdir,sp,&ret,sizeof(&ret))<0)
+		panic("cannot store return value");
+	proc->tf->esp-=4;
+
+	// There might be joined thread sleeping in join().
+	wakeup1(&proc->pid);
+
+	// Jump into the scheduler, never to return.
+	proc->state = ZOMBIE;
+	
+	// Take care of the code here,
+	// proc->tf will not be popped.
+	sched();
+	panic("zombie exit");
+}
+
+
+//Clean the resources of the thread.
+void thread_clear(struct proc* p)
+{
+	kfree(p->kstack);
+	p->kstack = 0;
+	p->state = UNUSED;
+	p->pid = 0;
+	p->parent = 0;
+	p->name[0] = 0;
+	p->killed = 0;
+	p->xstack= 0;
 }

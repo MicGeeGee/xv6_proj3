@@ -123,6 +123,8 @@ int				clone(void* (*fn)(void *),void* stack, void* arg);
 void			join(int tid,void** ret_p,void** stack);
 void			thread_exit(void* ret);
 
+void			thread_clear(struct proc*);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 

@@ -14,6 +14,11 @@ void xthread_create(int * tid, void * (* start_routine)(void *), void * arg)
 	printf(1,"%tid=%d\n",id);
 }
 
+void xthread_join(int tid, void ** retval)
+{
+    
+    
+}
 
 void xthread_exit(void * ret_val_p)
 {
@@ -22,8 +27,4 @@ void xthread_exit(void * ret_val_p)
 }
 
 
-void xthread_join(int tid, void ** retval)
-{
-    // add your implementation here ...
-    
-}
+
