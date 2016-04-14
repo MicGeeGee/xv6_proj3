@@ -99,8 +99,9 @@ trap(struct trapframe *tf)
 	else
 	{
 		// Catch the exception and get the return value.
-		asm volatile("\t movl %%eax,%0" : "=r"(tf->eax));
-		thread_exit((void*)tf->eax);
+		//asm volatile("\t movl %%eax,%0" : "=r"(ret_val));
+		//cprintf("trap: return val=0x%x\n",ret_val);
+		thread_exit((void* )tf->eax);
 	}
     proc->killed = 1;
   }

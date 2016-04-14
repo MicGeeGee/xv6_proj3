@@ -115,9 +115,35 @@ int sys_clone(void)
 }
 int sys_join(void)
 {
+	int tid;
+	void** ret_p;
+	void** stack;
+	
+	int n1;
+	int n2;
+	int n3;
+	
+	argint(0,&n1);
+	argint(1,&n2);
+	argint(2,&n3);
+
+	tid=n1;
+	ret_p=(void** )n2;
+	stack=(void** )n3;
+
+
+	join(tid,ret_p,stack);
+
 	return 0;
 }
 int sys_thread_exit(void)
 {
+	void* ret;
+	int n;
+	argint(0,&n);
+	ret=(void* )n;
+
+	thread_exit(ret);
+
 	return 0;
 }

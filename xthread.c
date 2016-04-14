@@ -5,25 +5,24 @@
 
 void xthread_create(int * tid, void * (* start_routine)(void *), void * arg)
 {
-	
-    int id=10;
+	int id;
 	char* p_stack=(char* )malloc(4096);
 	p_stack+=4096;
 	id=clone(start_routine,p_stack,arg);
 	*tid=id;
-	printf(1,"%tid=%d\n",id);
+	
 }
 
 void xthread_join(int tid, void ** retval)
 {
-    
-    
+	void** stack=0;
+    join(tid,retval,stack);
+	free(*stack);
 }
 
 void xthread_exit(void * ret_val_p)
 {
-    // add your implementation here ...
-    
+	thread_exit(ret_val_p);    
 }
 
 

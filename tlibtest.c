@@ -30,7 +30,7 @@ void * tc1_func(void * arg)
     count++;
     printf(1, "Printing in %s thread: completed!\n", (char *)arg);
 	
-	//exit();
+	
     return (void *)0;
 
 }
@@ -89,6 +89,7 @@ Thread 47 returned 33.
 * ***************************************************************************/
 void * tc3_func1(void * arg)
 {
+	thread_exit((void *)0x12345);
     return (void *)0x12345;
 }
 

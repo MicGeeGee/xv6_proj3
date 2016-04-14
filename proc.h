@@ -67,6 +67,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   char* xstack;				   // Top of user stack for this thread
+  void* xret;				   // Return value of thread
 };
 
 // Process memory is laid out contiguously, low addresses first:

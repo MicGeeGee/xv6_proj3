@@ -284,7 +284,8 @@ wait(void)
     // Scan through table looking for zombie children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != proc)
+	  // Wait is not responsible for threads.
+      if(p->parent != proc || p->xstack)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
@@ -334,13 +335,20 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+      
+	  //if(p->xstack)
+		//cprintf("thread_exit:pid=%d,esp=0x%x\n",p->pid,p->tf->esp);
+
+	  if(p->state != RUNNABLE)
         continue;
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
+
+	  
+
       switchuvm(p);
       p->state = RUNNING;
 
@@ -609,7 +617,7 @@ void join(int tid,void** ret_p,void** stack)
 		is_existed = 0;
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
 		{
-			if(p->pid != tid)
+			if(p->pid != tid || !p->xstack)
 				continue;
 			is_existed = 1;
 			if(p->state == ZOMBIE)
@@ -622,7 +630,11 @@ void join(int tid,void** ret_p,void** stack)
 				*stack=p->xstack-4096;
 
 				// Pass the return value to ret_p.
-				*ret_p=(void* )(*((uint*)(p->tf->esp)));
+				//cprintf("join:pid=%d,esp=0x%x\n",p->pid,p->tf->esp);
+				
+				//*ret_p=(void* )(*((uint*)(p->tf->esp)));
+				*ret_p=p->xret;
+
 
 				p->state = UNUSED;
 				p->pid = 0;
@@ -649,7 +661,7 @@ void join(int tid,void** ret_p,void** stack)
 			return;
 		}
 
-		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
+		// Wait for this thread to exit.  (See wakeup1 call in proc_exit.)
 		sleep(&p->pid, &ptable.lock);  //DOC: wait-sleep
 	}
 
@@ -657,7 +669,7 @@ void join(int tid,void** ret_p,void** stack)
 
 void thread_exit(void* ret)
 {
-	uint sp;
+	//uint sp;
 	int is_last;
 	int fd;
 	struct proc* p;
@@ -710,12 +722,21 @@ void thread_exit(void* ret)
 
 	// Store the return value on the user stack.
 	// We only need the address here to get access to the correspond place in pgdir.
+	/*
+	cprintf("thread_exit:pid=%d,esp=0x%x\n",proc->pid,proc->tf->esp);
+	
 	sp=proc->tf->esp;
 	sp-=4;
 	if(copyout(proc->pgdir,sp,&ret,sizeof(&ret))<0)
 		panic("cannot store return value");
-	proc->tf->esp-=4;
-
+	proc->tf->esp=sp;
+	cprintf("thread_exit:proc ptr=0x%x,pid=%d,esp=0x%x\n",proc,proc->pid,proc->tf->esp);
+	*/
+	
+	// Store the return value.
+	proc->xret=ret;
+	
+	
 	// There might be joined thread sleeping in join().
 	wakeup1(&proc->pid);
 
@@ -727,6 +748,7 @@ void thread_exit(void* ret)
 	// Take care of the code here,
 	// proc->tf will not be popped.
 	sched();
+
 	panic("zombie exit");
 }
 
